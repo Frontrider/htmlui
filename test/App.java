@@ -16,6 +16,8 @@ public class App extends javafx.application.Application {
     public void start(Stage stage) throws Exception {
         HtmlEventHandler button = new HtmlEventHandler() {
 
+            /**After clicking the button, we will log the event type, and the document type.
+             * */
             @Override
             public void handleEvent(@Nullable Event evt) {
                 assert evt != null;

@@ -36,7 +36,8 @@ import org.w3c.dom.events.EventTarget
  * NO JAVASCRIPT SHOULD BE USED FOR THE LOGIC, IT SHOULD BE USED TO ENHANCE THE UI!
  *
  * The library was created to provide clean and easy access to the most powerful UI framework currently known.
- * JFX is already gives a non-native look, so its up to the task to decide weather or not we wa
+ * JFX is already gives a non-native look, so its up to the task to decide weather or not we want to use something else,
+ * depending on our team.
  */
 private class EventHolder(val name:String){
     val events = ArrayList<HtmlEventHandler>()

@@ -5,6 +5,7 @@ import hu.frontrider.htmlui.Configuration;
 import hu.frontrider.htmlui.HtmlEventHandler;
 import javafx.stage.Stage;
 import org.jetbrains.annotations.Nullable;
+import org.w3c.dom.Element;
 import org.w3c.dom.events.Event;
 
 /**
@@ -19,6 +20,7 @@ public class App extends javafx.application.Application {
             public void handleEvent(@Nullable Event evt) {
                 assert evt != null;
                 System.out.println(evt.getType());
+                System.out.println(((Element) evt.getTarget()).getOwnerDocument().getDoctype().getName());
             }
 
             @Override

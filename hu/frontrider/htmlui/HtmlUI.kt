@@ -21,9 +21,11 @@ import javafx.concurrent.Worker
 import javafx.geometry.Insets
 import javafx.scene.Scene
 import javafx.scene.layout.VBox
+import javafx.scene.web.WebEngine
 import javafx.scene.web.WebView
 import javafx.stage.Stage
 import javafx.stage.StageStyle
+import jdk.nashorn.api.scripting.JSObject
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.EventListener
 import org.w3c.dom.events.EventTarget
@@ -45,10 +47,13 @@ private class EventHolder(val name:String){
 class Binder(private val configuraion:Configuration) {
     //mouse events
     private val events = ArrayList<EventHolder>()
+    private val jsObjects = HashMap<String,Any>();
+    private lateinit var webEngine:WebEngine
 
     init{
         /**
          * all the html events what we can bind to.
+         * Oh boy, thats a lot.
          * */
         //mouse events
         events.add(EventHolder("click"))
@@ -112,28 +117,35 @@ class Binder(private val configuraion:Configuration) {
         events.add(EventHolder("toggle"))
         events.add(EventHolder("ratechange"))
         //window
-        /**
-         * window events would go here, but at the moment they make no sense in the context.
-         * */
-
+        events.add(EventHolder("alert"))
+        events.add(EventHolder("confirm"))
+        events.add(EventHolder("resized"))
     }
 
     fun addHandler(type:String,handler: HtmlEventHandler):Boolean
     {
+
         for(eh in events)
         {
+            //check if the event is actually valid.
             if(eh.name == type) {
                 eh.events.add(handler)
                 return true
             }
         }
+        println("HTML binder, invalid event type")
         return false
+    }
+
+    fun addObject(name:String,obj:Any)
+    {
+        jsObjects.put(name,obj)
     }
 
     fun init(stage: Stage)
     {
         val browser = WebView()
-        val webEngine = browser.engine
+        webEngine = browser.engine
 
         webEngine.isJavaScriptEnabled = configuraion.enablejs
         webEngine.loadWorker.stateProperty().addListener { _, _, newValue ->
@@ -157,9 +169,12 @@ class Binder(private val configuraion:Configuration) {
                     }
                 }
 
-
-
             }
+        }
+        val window = webEngine.executeScript("window") as JSObject
+        for(obj in jsObjects)
+        {
+            window.setMember(obj.key,obj.value)
         }
 
         val root = VBox()
@@ -183,6 +198,9 @@ class Binder(private val configuraion:Configuration) {
         stage.width = configuraion.width.toDouble()
         stage.height = configuraion.height.toDouble()
         stage.show()
+    }
+    fun executeScript(javascript:String): Boolean {
+        return webEngine.executeScript(javascript) == true
     }
 }
 

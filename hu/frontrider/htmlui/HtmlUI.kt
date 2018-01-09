@@ -1,5 +1,6 @@
 /**
     Single file API to make it easy to use jfx webview as a powerfull ui framework.
+
     Copyright (C) 2017  András Gábor Kis
 
     This program is free software: you can redistribute it and/or modify
@@ -18,14 +19,19 @@
 package hu.frontrider.htmlui
 
 import javafx.concurrent.Worker
+import javafx.event.EventHandler
 import javafx.geometry.Insets
+import javafx.geometry.Rectangle2D
 import javafx.scene.Scene
 import javafx.scene.layout.VBox
+import javafx.scene.web.HTMLEditor
 import javafx.scene.web.WebEngine
+import javafx.scene.web.WebEvent
 import javafx.scene.web.WebView
 import javafx.stage.Stage
 import javafx.stage.StageStyle
 import netscape.javascript.JSObject
+import org.w3c.dom.Document
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.EventListener
 import org.w3c.dom.events.EventTarget
@@ -47,7 +53,8 @@ private class EventHolder(val name:String){
 class Binder(private val configuraion:Configuration) {
     //mouse events
     private val events = ArrayList<EventHolder>()
-    private val jsObjects = HashMap<String,Any>();
+    private val jsObjects = HashMap<String,Any>()
+    private var css = ""
     private lateinit var webEngine:WebEngine
 
     init{
@@ -117,11 +124,13 @@ class Binder(private val configuraion:Configuration) {
         events.add(EventHolder("toggle"))
         events.add(EventHolder("ratechange"))
         //window
-        events.add(EventHolder("alert"))
-        events.add(EventHolder("confirm"))
-        events.add(EventHolder("resized"))
+
+
     }
 
+    fun getDoc(): Document {
+        return webEngine.document
+    }
     fun addHandler(type:String,handler: HtmlEventHandler):Boolean
     {
 
@@ -142,6 +151,21 @@ class Binder(private val configuraion:Configuration) {
         jsObjects.put(name,obj)
     }
 
+    fun setStylesheet(css:String)
+    {
+        this.css = css
+    }
+
+    fun executeScript(javascript:String): Boolean {
+        try {
+            return webEngine.executeScript(javascript) == true
+        }catch (e:Exception)
+        {
+            e.printStackTrace()
+            return false
+        }
+    }
+
     fun init(stage: Stage)
     {
         val browser = WebView()
@@ -151,9 +175,9 @@ class Binder(private val configuraion:Configuration) {
         webEngine.loadWorker.stateProperty().addListener { _, _, newValue ->
             if (newValue == Worker.State.SUCCEEDED) {
                 val doc = webEngine.document
-
                 for(eh in events) {
                     for (handler in eh.events) {
+
                         val id = handler.getID()
                         if (id != null) {
                             val el = doc.getElementById(id)
@@ -166,15 +190,21 @@ class Binder(private val configuraion:Configuration) {
                                 (els.item(i) as EventTarget).addEventListener(eh.name, handler, false)
                             }
                         }
+
                     }
                 }
 
             }
         }
+
         val window = webEngine.executeScript("window") as JSObject
         for(obj in jsObjects)
         {
             window.setMember(obj.key,obj.value)
+        }
+        if(css !="")
+        {
+            webEngine.userStyleSheetLocation = css
         }
 
         val root = VBox()
@@ -199,13 +229,10 @@ class Binder(private val configuraion:Configuration) {
         stage.height = configuraion.height.toDouble()
         stage.show()
     }
-    fun executeScript(javascript:String): Boolean {
-        return webEngine.executeScript(javascript) == true
-    }
+
 }
 
 class Configuration {
-
     var enablejs = true
     var html = "<!DOCTYPE html>\n" +
             "<html lang=\"en\" xmlns=\"http://www.w3.org/1999/html\">\n" +
@@ -215,7 +242,7 @@ class Configuration {
             "</head>\n" +
             "<body>\n" +
             "<button id=\"button\">click</button>\n" +
-            "<p>This is the test page of the javafx html ui API. Supply your own to the \"HTML\" " +
+            "<p id=\"text\">This is the test page of the javafx html ui API. Supply your own to the \"HTML\" " +
             "parameter of the Configuratuion</p>\n" +
             "</body>\n" +
             "</html>"
@@ -225,7 +252,7 @@ class Configuration {
     var height = 300
 }
 
-interface HtmlEventHandler : EventListener {
+interface HtmlEventHandler : EventListener{
     override fun handleEvent(evt: Event?)
     fun getID():String?
     fun getTag(): String?
